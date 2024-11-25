@@ -56,3 +56,6 @@ third-party/
 # Ignore other system-specific files
 .DS_Store
 Thumbs.db
+
+# Ignore generated samples
+chessboard_samples/*.jpg
