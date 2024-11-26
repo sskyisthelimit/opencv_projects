@@ -1,40 +1,56 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/calib3d.hpp>
 #include <iostream>
+#include <vector>
+#include <filesystem> 
+
+using namespace std;
+using namespace cv;
+namespace fs = std::filesystem;
+
+const float calibrationSquareLen = 0.015f;
+const Size chessboardDimensions = Size(7, 7);
+
+void processChessboardImages(const string& samplesDir, vector<vector<Point2f>>& foundCorners, const string& outputFolder) {
+    fs::create_directories(outputFolder);
+    int imgCounter = 0;
+
+    for (const auto& entry : fs::directory_iterator(samplesDir)) {
+        string filepath = entry.path().string();
+        Mat image = imread(filepath);
+        if (image.empty()) {
+            cerr << "Could not load image: " << filepath << endl;
+            continue;
+        }
+        vector<Point2f> pointBuffer;
+        bool found = findChessboardCorners(image, chessboardDimensions, pointBuffer, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+        if (found) {
+            foundCorners.push_back(pointBuffer);
+            drawChessboardCorners(image, chessboardDimensions, pointBuffer, found);
+        } else {
+            cerr << "Chessboard not found in: " << filepath << endl;
+        }
+
+        string outputFilename = outputFolder + "image_" + to_string(imgCounter) + ".jpg";
+        imwrite(outputFilename, image);
+        cout << "Processed and saved: " << outputFilename << endl;
+
+        imgCounter++;
+    }
+}
+
 
 int main(){
-    cv::VideoCapture cap(2);
-    if (!cap.isOpened()) {
-        std::cerr << "Error: couldn't open cam" << std::endl;
-        return -1;
-    }
+    string samplesFolder = "../chessboard_samples";
+    string outputFolder = "../processed_samples/";
 
-    cv::namedWindow("Camera Prewiew", cv::WINDOW_AUTOSIZE);
+    vector<vector<Point2f>> imagePoints;
 
-    int imgCounter = 0;
-    std::string outputFolder = "./";
+    processChessboardImages(samplesFolder, imagePoints, outputFolder);
+    
+    cout << "Finished processing images. Found corners in " << imagePoints.size() << " images." << endl;
 
-    while(true){
-        cv::Mat frame;
-        cap >> frame;
-        if (frame.empty()) {
-            std::cerr << "Error: Could not read frame from camera." << std::endl;
-            break;
-        }
-
-        cv::imshow("Camera Preview", frame);
-        char key = (char)cv::waitKey(1);
-
-        if (key == 'q') {
-            break;
-        }
-        else if (key == 's') {
-            std::string filename = outputFolder + "image_" + std::to_string(imgCounter) + ".jpg";
-            cv::imwrite(filename, frame);
-            std::cout << "Saved: " << filename << std::endl;
-            imgCounter++;
-        }
-    }
-    cap.release();
-    cv::destroyAllWindows();
     return 0;
+
+
 }
