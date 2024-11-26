@@ -60,3 +60,4 @@ Thumbs.db
 # Ignore generated samples
 chessboard_samples/*.jpg
 processed_samples/*.jpg
+undistorted_samples/*.jpg
