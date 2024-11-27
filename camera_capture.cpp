@@ -42,6 +42,7 @@ bool loadCameraSettings(const string& filename, Mat& distCoeffs, Mat& cameraMatr
     cout << "Camera settings loaded from " << filename << endl;
     return true;
 
+}
 
 void undistortAndSave(const vector<Mat>& images, Mat& distCoeffs,
     Mat& cameraMatrix, const string& outputFolder) {
@@ -113,32 +114,72 @@ void calibrateCameraByBoard(const vector<Mat>& images, Size boardSize, float squ
     cout << "Distortion coefficients:\n" << distCoeffs << endl;
 }
 
+void showCalibratedCam(Mat& distCoeffs, Mat& cameraMatrix, int capIndex) {
+    VideoCapture cap(capIndex);
+    if (!cap.isOpened()) {
+        cerr << "Error: Unable to access the camera." << endl;
+        return;
+    }
+
+    namedWindow("Calibrated feed", WINDOW_AUTOSIZE);
+    Mat frame, undistorted;
+    while (true) {
+        cap >> frame;
+        if (frame.empty()) {
+            cerr << "Error: Failed to capture frame." << endl;
+            break;
+        }
+        undistort(frame, undistorted, cameraMatrix, distCoeffs);
+        imshow("Calibrated feed", undistorted);
+                char key = (char)waitKey(30);
+        if (key == 27) break; 
+    }
+
+    cap.release();
+    destroyAllWindows();
+}
+
 int main() {
     string samplesFolder = "../chessboard_samples/";
     string outputFolder = "../undistorted_samples/";
-    
-    fs::create_directories(outputFolder);
-
-    vector<Mat> calibrationImages;
-    for (const auto& entry : fs::directory_iterator(samplesFolder)) {
-        if (entry.path().extension() == ".jpg") {
-            Mat img = imread(entry.path().string());
-            if (!img.empty()) {
-                calibrationImages.push_back(img);
-            } else {
-                cerr << "Failed to load image: " << entry.path() << endl;
-            }
-        }
-    }
-
-    if (calibrationImages.empty()) {
-        cerr << "No valid images found in the samples folder." << endl;
-        return -1;
-    }
+    string settingsFile = "../camera_settings.xml";
 
     Mat cameraMatrix, distCoeffs;
-    calibrateCameraByBoard(calibrationImages, chessboardDimensions, calibrationSquareLen, cameraMatrix, distCoeffs);
-    undistortAndSave(calibrationImages, distCoeffs, cameraMatrix, outputFolder);
 
+    if(fs::exists(settingsFile)) {
+        if(loadCameraSettings(settingsFile, distCoeffs, cameraMatrix)){
+            cout << "Calibration settings loaded successfully" << endl;
+            showCalibratedCam(distCoeffs, cameraMatrix, 2);
+        } else {
+            cerr << "Calibration settings weren't loaded successfully" << endl;
+        }
+    } else {
+        fs::create_directories(outputFolder);
+
+        vector<Mat> calibrationImages;
+        for (const auto& entry : fs::directory_iterator(samplesFolder)) {
+            if (entry.path().extension() == ".jpg") {
+                Mat img = imread(entry.path().string());
+                if (!img.empty()) {
+                    calibrationImages.push_back(img);
+                } else {
+                    cerr << "Failed to load image: " << entry.path() << endl;
+                }
+            }
+        }
+
+        if (calibrationImages.empty()) {
+            cerr << "No valid images found in the samples folder." << endl;
+            return -1;
+        }
+
+        
+        calibrateCameraByBoard(calibrationImages, chessboardDimensions, calibrationSquareLen, cameraMatrix, distCoeffs);
+        if(saveCameraSettings(settingsFile, distCoeffs, cameraMatrix)){
+            cout << "Calibration settings saved successfully" << endl;
+        } else {
+            cerr << "Calibration settings weren't saved successfully" << endl;
+        }
+    }
     return 0;
 }
