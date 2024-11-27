@@ -18,6 +18,31 @@ namespace fs = std::filesystem;
 const float calibrationSquareLen = 0.015f;
 const Size chessboardDimensions = Size(7, 7);
 
+bool saveCameraSettings(const string& filename, Mat& distCoeffs, Mat& cameraMatrix) {
+    FileStorage fs(filename, FileStorage::WRITE);
+    if (!fs.isOpened()){
+        cout << "couldn't open file" << endl;
+        return false;
+    }
+
+    fs << "cameraMatrix" << cameraMatrix;
+    fs << "distCoeffs" << distCoeffs;
+    cout << "Camera settings saved to " << filename << endl;
+    return true;
+}
+
+bool loadCameraSettings(const string& filename, Mat& distCoeffs, Mat& cameraMatrix) {
+    FileStorage fs(filename, FileStorage::READ);
+    if (!fs.isOpened()){
+        cout << "couldn't open file" << endl;
+        return false;
+    }
+    fs["cameraMatrix"] >> cameraMatrix;
+    fs["distCoeffs"] >> distCoeffs;
+    cout << "Camera settings loaded from " << filename << endl;
+    return true;
+
+
 void undistortAndSave(const vector<Mat>& images, Mat& distCoeffs,
     Mat& cameraMatrix, const string& outputFolder) {
     int count = 0;
