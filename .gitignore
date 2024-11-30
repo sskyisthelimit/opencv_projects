@@ -1,5 +1,5 @@
 # Ignore build directories
-/build/
+*/build/
 /Build/
 
 # Ignore CMake generated files
@@ -58,6 +58,6 @@ third-party/
 Thumbs.db
 
 # Ignore generated samples
-chessboard_samples/*.jpg
-processed_samples/*.jpg
-undistorted_samples/*.jpg
+camera_calibration/chessboard_samples/*.jpg
+camera_calibration/processed_samples/*.jpg
+camera_calibration/undistorted_samples/*.jpg
